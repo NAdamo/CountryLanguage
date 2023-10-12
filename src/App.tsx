@@ -1,8 +1,10 @@
+import CountryList from "./components/CountryList"
 
 function App() {
 
   return (
     <>
+      <CountryList />
     </>
   )
 }
