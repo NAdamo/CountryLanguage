@@ -3,11 +3,13 @@ import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material"
 import StyledButton from "./StyledButton";
 import StyledHeader from "./StyledHeader";
 import { filterContext } from "../contexts/FilterContext";
+import { CountryLanguageContext } from "../contexts/CountryLanguageContext";
 
 
 
 function CountryList() {
-    const { result: { countries }, loading, error } = useContext(filterContext)
+    const { result: { countries } } = useContext(filterContext);
+    const { loading, error } = useContext(CountryLanguageContext);
     useEffect(() => { setCount(5) }, [countries])
     const [count, setCount] = useState<number | null>(5);
     const hasMore = count !== null && count < countries.length;
