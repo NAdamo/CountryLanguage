@@ -12,6 +12,7 @@ function StyledButton(props: ButtonProps) {
                 color: "rgba(0, 0, 0, 0.6)",
                 textTransform: "none",
                 fontSize: "12px",
+                alignSelf: "flex-start",
             }}
             {...props}
         />
