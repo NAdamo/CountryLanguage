@@ -1,7 +1,7 @@
 import { ApolloError, gql, useQuery } from "@apollo/client";
 import { useMemo } from "react";
 
-type Country = {
+export type Country = {
     code: string;
     emoji: string;
     name: string;
@@ -15,10 +15,14 @@ type GetCountries = {
     countries: Country[];
 }
 
-type CountryDisplay = {
+export type CountryDisplay = {
     code: string;
     name: string;
     languages: string;
+}
+
+export type CountryFilter = {
+    code?: string;
 }
 
 const GET_COUNTRIES = gql`
@@ -36,24 +40,18 @@ const GET_COUNTRIES = gql`
 
 `
 
-function useCountries(count: number | null): { loading: boolean, error: ApolloError | undefined, countries: CountryDisplay[], isShowAll: boolean } {
+function useCountries(): { loading: boolean, error: ApolloError | undefined, countries: Country[] } {
     const { loading, error, data } = useQuery<GetCountries>(GET_COUNTRIES);
 
-    const countries: CountryDisplay[] = useMemo(() => {
-        return (data ? data.countries.map((country) => {
-            return {
-                name: country.name,
-                languages: country.languages.map((language) => language.name).join(", "),
-                code: country.code
-            }
-        }) : [])
+
+    const countries: Country[] = useMemo(() => {
+        return (data ? data.countries : []);
     }, [data])
 
     return {
         loading,
         error,
-        countries: (count ? countries.slice(0, count) : countries),
-        isShowAll: !!count && count < countries.length
+        countries
     }
 }
 
