@@ -1,34 +1,54 @@
-import { useEffect, useReducer } from "react";
-import useCountries, { Country, CountryDisplay } from "../../hooks/useCountries";
-import { FilterData, Filters, FilterResult, FilterState, FilterAction, FilterActionType, SetCountriesPayload, SetCountryFilterPayload, filterContext } from "./FilterContext";
-import { FilterOptions, filterOptionsContext } from "./FilterOptionsContext";
+import { useContext, useEffect, useReducer } from "react";
+import { Country, CountryDisplay } from "../../hooks/useCountriesAndLanguages";
+import { FilterData, Filters, FilterResult, FilterState, FilterAction, FilterActionType, SetCountriesPayload, SetCountryFilterPayload, filterContext, SetLanguageFilterPayload, filterDispatchContext } from "./FilterContext";
+import { CountryLanguageContext } from "../CountryLanguageContext";
+
 
 
 
 const createData: (countries: Country[]) => FilterData = (countries: Country[]) => {
     return countries
-        .map<CountryDisplay>(({ name, code, languages }) => ({ name, code, languages: languages.map(language => language.name).join(', ') }))
-        .reduce((acc, country) => {
-            acc.countryByCode.set(country.code, country);
+        .reduce((acc, { code, name, languages }) => {
+            const country: CountryDisplay = { code, name, languages: languages.map(({ name }) => name).join(", ") };
+            acc.countriesByCode.set(code, country);
+            languages.forEach(({ code }) => {
+                const countries = acc.countriesByLanguage.get(code) ?? new Set<CountryDisplay>();
+                countries.add(country);
+                acc.countriesByLanguage.set(code, countries);
+            })
             return acc;
-        }, { countryByCode: new Map<string, CountryDisplay>() })
+        }, { countriesByCode: new Map<string, CountryDisplay>(), countriesByLanguage: new Map<string, Set<CountryDisplay>>() })
 }
 
-const createFilterOptions: (countries: Country[]) => FilterOptions = (countries) => {
-    return {
-        countries: countries.map(({ name, code }) => ({ code, label: name }))
-    }
-}
+const applyFilters: (data: FilterData, filters: Filters) => FilterResult = (data, { countryCode, languageCodes }) => {
+    if (data === undefined) return { countries: [] };
+    const hasLanguageFilter = languageCodes !== undefined && languageCodes.length > 0;
+    const countries: CountryDisplay[] = hasLanguageFilter ? languageCodes
+        .map((code) => data.countriesByLanguage.get(code) ?? new Set<CountryDisplay>())
+        .reduce((acc, selectedCountries) => {
+            if (selectedCountries === undefined) return acc;
+            if (acc.length === 0) return selectedCountries ? Array.from(selectedCountries) : [];
+            return acc.filter((country) => selectedCountries.has(country));
+            //    //if (countries !== undefined) {
+            //    //countries.forEach((country) => acc.add(country));
+            //    //    const countries = data.countriesByLanguage.get(code);
+            //    //}
+        }, [] as CountryDisplay[])
+        : []
 
-const applyFilters: (data: FilterData, filters: Filters) => FilterResult = (data, filters) => {
-    if (filters.countryCode !== undefined) {
-        const country = data.countryByCode.get(filters.countryCode);
+    if (countryCode !== undefined) {
+        const country = data.countriesByCode.get(countryCode);
+        if (hasLanguageFilter) {
+            // return [];
+            return { countries: countries.filter(({ code }) => code === countryCode) };
+        }
         return {
             countries: country ? [country] : []
         }
     }
+    if (hasLanguageFilter) return { countries };
     return {
-        countries: Array.from(data.countryByCode.values())
+        countries: Array.from(data.countriesByCode.values())
     }
 }
 
@@ -45,11 +65,21 @@ const filterReducer: (state: FilterState, action: FilterAction) => FilterState =
                 data: data
             }
         case FilterActionType.SET_COUNTRY_FILTER: {
+            const filters = { ...state.filters, countryCode: payload as SetCountryFilterPayload };
             return {
                 ...state,
-                filters: { ...state.filters, countryCode: payload as SetCountryFilterPayload },
-                result: applyFilters(state.data as FilterData, { countryCode: payload as SetCountryFilterPayload })
+                filters: filters,
+                result: applyFilters(state.data as FilterData, filters)
             }
+        }
+        case FilterActionType.SET_LANGUAGE_FILTER: {
+            const filters = { ...state.filters, languageCodes: payload as SetLanguageFilterPayload };
+            return {
+                ...state,
+                filters: filters,
+                result: applyFilters(state.data as FilterData, filters)
+            }
+        //return state;
         }
         default:
             return state;
@@ -60,16 +90,16 @@ const initialFilterState: FilterState = { result: { countries: [] } };
 
 export function FilterContextProvider({ children }: { children: React.ReactNode }) {
     const [filterState, dispatch] = useReducer(filterReducer, initialFilterState);
-    const { countries, loading, error } = useCountries();
+    const { countries } = useContext(CountryLanguageContext);
     useEffect(() => {
         dispatch({ type: FilterActionType.SET_COUNTRIES, payload: countries });
     }, [countries]);
 
     return (
-        <filterContext.Provider value={{ result: filterState.result, dispatch, loading, error }}>
-            <filterOptionsContext.Provider value={createFilterOptions(countries)}>
+        <filterContext.Provider value={{ result: filterState.result }}>
+            <filterDispatchContext.Provider value={dispatch}>
                 {children}
-            </filterOptionsContext.Provider>
+            </filterDispatchContext.Provider>
         </filterContext.Provider>
     );
 }

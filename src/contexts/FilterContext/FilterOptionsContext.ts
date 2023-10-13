@@ -7,6 +7,9 @@ export type FilterOption = {
 
 export type FilterOptions = {
     countries: FilterOption[];
+    languages: FilterOption[];
 }
 
-export const filterOptionsContext = createContext<FilterOptions>({ countries: [] });
+type FilterOptionsContext = FilterOptions
+
+export const filterOptionsContext = createContext<FilterOptionsContext>({ countries: [], languages: [] });

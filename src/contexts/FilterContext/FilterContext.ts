@@ -1,18 +1,20 @@
-import { ApolloError } from "@apollo/client";
-import { CountryDisplay, Country } from "../../hooks/useCountries";
+import { CountryDisplay, Country } from "../../hooks/useCountriesAndLanguages";
 import { createContext } from "react";
 
 export enum FilterActionType {
     SET_COUNTRIES = "SET_COUNTRIES",
     SET_COUNTRY_FILTER = "SET_COUNTRY_FILTER",
+    SET_LANGUAGE_FILTER = "SET_LANGUAGE_FILTER"
 }
 
 export type Filters = {
     countryCode?: string;
+    languageCodes?: string[];
 }
 
 export type FilterData = {
-    countryByCode: Map<string, CountryDisplay>;
+    countriesByCode: Map<string, CountryDisplay>;
+    countriesByLanguage: Map<string, Set<CountryDisplay>>;
 }
 
 export type FilterResult = {
@@ -26,18 +28,17 @@ export type FilterState = {
 }
 
 export type FilterContext = {
-    result: FilterResult,
-    loading?: boolean,
-    error?: ApolloError | undefined,
-    dispatch: React.Dispatch<FilterAction>,
+    result: FilterResult
 };
 
 export type SetCountriesPayload = Country[];
 export type SetCountryFilterPayload = string | undefined;
+export type SetLanguageFilterPayload = string[];
 
 export interface FilterAction {
     type: FilterActionType;
-    payload: SetCountriesPayload | SetCountryFilterPayload;
+    payload: SetCountriesPayload | SetCountryFilterPayload | SetLanguageFilterPayload;
 }
 
-export const filterContext = createContext<FilterContext>({ result: { countries: [] }, dispatch: () => { } });
+export const filterContext = createContext<FilterContext>({ result: { countries: [] } });
+export const filterDispatchContext = createContext<React.Dispatch<FilterAction>>(() => { });
